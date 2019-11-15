@@ -7,6 +7,7 @@ import tensorflow as tf
 
 class InferenceManager(object):
     def __init__(self, detection_only=False):
+        super(InferenceManager, self).__init__()
 
         self.detection_only = detection_only
 

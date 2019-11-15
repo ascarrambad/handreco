@@ -130,7 +130,7 @@ def main():
     if enable_gui:
         main_window = GUIVideoWindow('Webcam feed', workers.output_q.get, size=(450,300))
         main_window.start(show_fps=show_fps)
-        cropped_out_window = GUIVideoWindow('HandFrame', workers.cropped_output_q.get)
+        cropped_out_window = GUIVideoWindow('Hand frame', workers.cropped_output_q.get)
         cropped_out_window.start()
 
     # Start main loop
@@ -155,7 +155,8 @@ def main():
                 # Service call
                 if enable_services:
                     decision = decision_mk.inferences_to_action(inferences)
-                    if decision is not None: # Check if decision is available
+                    # Check if decision is available
+                    if decision is not None:
                         action, payload = decision
                         services.call(action, 'window_left', payload)
 

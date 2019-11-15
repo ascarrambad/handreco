@@ -8,8 +8,9 @@ import cv2
 # https://www.pyimagesearch.com/2017/02/06/faster-video-file-fps-with-cv2-videocapture-and-opencv/
 class WebcamVideostream:
     def __init__(self, src=0, width=None, height=None):
-        # initialize the video camera stream and read the first frame
-        # from the stream
+        super(WebcamVideostream, self).__init__()
+
+        # Init videocamera stream
         self.stream = cv2.VideoCapture(src)
 
         if height is not None and width is not None:

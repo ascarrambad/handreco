@@ -7,6 +7,7 @@ import numpy as np
 
 class DecisionMaker(object):
     def __init__(self):
+        super(DecisionMaker, self).__init__()
 
         self._last_brightness = 255
         self._inf_queue = []

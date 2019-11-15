@@ -40,6 +40,8 @@ def _display_func(name, size, show_fps, img_retrival_func):
 
 class GUIVideoWindow(object):
     def __init__(self, name, img_retrival_func, size=None):
+        super(GUIVideoWindow, self).__init__()
+
         self.name = name
         self.size = size
         self._img_retrival_func = img_retrival_func

@@ -39,6 +39,7 @@ def _speech_rec_func(enable_rec_v, recognized_speech_a, activation_tokens):
 class SpeechRecognizer(object):
 
     def __init__(self):
+        super(SpeechRecognizer, self).__init__()
 
         # Config parser
         cfg = configparser.ConfigParser()

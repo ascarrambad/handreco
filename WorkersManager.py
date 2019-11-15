@@ -34,6 +34,7 @@ def _worker_func(shared_model, enable_rec_v, input_q, output_q, cropped_output_q
 
 class WorkersManager(object):
     def __init__(self, num_workers, queues_size, enable_rec_v, inference_manager_class):
+        super(WorkersManager, self).__init__()
 
         self._rec_pool = None
         self._num_workers = num_workers
