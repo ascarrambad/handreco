@@ -13,31 +13,41 @@ class WebcamVideostream:
         # Init videocamera stream
         self.stream = cv2.VideoCapture(src)
 
-        if height is not None and width is not None:
+        if width is not None and height is not None:
             self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, width)
             self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        (self.grabbed, self.frame) = self.stream.read()
+
+        self.grabbed = None
+        self.frame = None
 
         # initialize the variable used to indicate if the thread should
         # be stopped
-        self.stopped = False
+        self._stopped = False
+        self._webcam_t = None
 
     def start(self):
-        Thread(target=self.update, args=()).start()
+        if self._webcam_t is None:
+            self._stopped = False
+            self._webcam_t = Thread(target=self.update, args=())
+            self._webcam_t.start()
+
+    def stop(self):
+        if self._webcam_t is not None:
+            self._stopped = True
+            self._webcam_t = None
 
     def update(self):
-        while True:
-            if self.stopped:
-                self.stream.release()
-                return
-
-            # otherwise, read the next frame from the stream
+        while not self._stopped:
+            # Read the next frame from the stream
             (self.grabbed, self.frame) = self.stream.read()
+
+        self.stream.release()
 
     def read(self, flip=False, to_RGB=False):
 
+        frame = self.frame
         if flip:
-            frame = cv2.flip(self.frame, 1)
+            frame = cv2.flip(frame, 1)
         if to_RGB:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -46,6 +56,3 @@ class WebcamVideostream:
 
     def size(self):
         return self.stream.get(3), self.stream.get(4)
-
-    def stop(self):
-        self.stopped = True

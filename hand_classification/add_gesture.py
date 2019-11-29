@@ -1,15 +1,49 @@
 
-import cv2
 import os
+import argparse
 
-from utils.WebcamVideostream import WebcamVideostream
+import cv2
+from pynput.keyboard import Key, Listener
+
+# Hack to import top-level modules
+from sys import path
+from os.path import dirname as dir
+path.append(dir(path[0]))
+
 from InferenceManager import InferenceManager
+from utils.GUIVideoWindow import GUIVideoWindow
 import utils.image as imgutils
 
+# Main loop stop var
+_terminate_proc = False
+
+# Key Listener
+def on_keypress(key):
+    global _terminate_proc
+    if key == Key.esc:
+        _terminate_proc = True
+
+
 def main():
+    # Parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-src',
+        '--source',
+        dest='video_source',
+        type=int,
+        default=0,
+        help='Device index of the camera.')
+    args = parser.parse_args()
 
     # Begin capturing
-    cap = WebcamVideostream(0).start()
+    cap = cv2.VideoCapture(args.video_source)
+
+    # Init keyboard listener
+    listener = Listener(on_press=on_keypress)
+    listener.start()
+
+    # Init inference manager (onyl for detection)
     inference_manager = InferenceManager(detection_only=True)
 
     currentPath = ''
@@ -87,31 +121,33 @@ def main():
                 currentExample ='Garbage_' + str(index) + '_'
                 name_gesture = 'Garbage'
 
+    gui = GUIVideoWindow('Videosource', lambda: cap.read()[1])
+    gui.start(isRGB=False)
+
     print('You\'ll now be prompted to record the gesture you want to add. \n \
-                Please place your hand beforehand facing the camera, and press return key when ready. \n \
-                When finished press \'q\'.')
-    input()
+                Please place your hand beforehand facing the camera, and press the escape key when ready. \n \
+                When finished press the escape key again.')
+
+    # Wait for user keypress
+    global _terminate_proc
+    while not _terminate_proc:
+        pass
 
     # Define the codec and create VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter(currentPath + name_gesture + '.avi', fourcc, 25.0, (640, 480))
 
-    while(cap.stopped == False):
-        ret, frame = cap.read()
-        if ret:
-            # write the frame
+    # Main loop
+    _terminate_proc = False
+    while not _terminate_proc:
+        _, frame = cap.read()
+        if frame is not None:
             out.write(frame)
 
-            cv2.imshow('frame', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        else:
-            break
-
     # Release everything if job is finished
-    cap.stop()
+    gui.terminate()
+    cap.release()
     out.release()
-    cv2.destroyAllWindows()
 
     vid = cv2.VideoCapture(currentPath + name_gesture + '.avi')
 

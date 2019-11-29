@@ -5,8 +5,11 @@ from multiprocessing.managers import BaseManager
 
 import utils.image as imgutils
 
+_stopped = False
+
 def _worker_func(shared_model, enable_rec_v, input_q, output_q, cropped_output_q, inferences_q, cap_params):
-    while True:
+    global _stopped
+    while not _stopped:
         frame = input_q.get()
         if (frame is not None):
             if (type(enable_rec_v) is bool and enable_rec_v) or enable_rec_v.value:
@@ -37,6 +40,8 @@ class WorkersManager(object):
         super(WorkersManager, self).__init__()
 
         self._rec_pool = None
+        global _stopped
+        _stopped = False
         self._num_workers = num_workers
         self._enable_rec_v = enable_rec_v
 
@@ -50,6 +55,7 @@ class WorkersManager(object):
         self.output_q = Queue(maxsize=queues_size)
         self.cropped_output_q = Queue(maxsize=queues_size)
         self.inferences_q = Queue(maxsize=queues_size)
+        self._rec_pool = None
 
         # Init shared InferenceManager
         BaseManager.register('InferenceManager', inference_manager_class)
@@ -58,10 +64,16 @@ class WorkersManager(object):
         self.shared_inference_manager = self._manager.InferenceManager()
 
     def start(self, cap_params):
-        cap_params['score_thresh'] = self._score_threshold
-        self._rec_pool = Pool(self._num_workers, _worker_func,
-                              (self.shared_inference_manager, self._enable_rec_v, self.input_q, self.output_q, self.cropped_output_q, self.inferences_q, cap_params))
+        if self._rec_pool is None:
+            global _stopped
+            _stopped = False
+            cap_params['score_thresh'] = self._score_threshold
+            self._rec_pool = Pool(self._num_workers, _worker_func,
+                                  (self.shared_inference_manager, self._enable_rec_v, self.input_q, self.output_q, self.cropped_output_q, self.inferences_q, cap_params))
 
     def terminate(self):
-        self._rec_pool.terminate()
-        self._rec_pool = None
+        if self._rec_pool is not None:
+            global _stopped
+            _stopped = True
+            self._rec_pool.terminate()
+            self._rec_pool = None

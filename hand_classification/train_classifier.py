@@ -40,7 +40,7 @@ def train(img_dims, model_name, epochs, batch_size, learning_rate):
     model_name = f'./hand_classification/models/{model_name}_{epochs}.h5'
 
     # Load Data
-    x_train, y_train, x_test, y_test = dataset.load_data(poses=["all"])
+    x_train, y_train, x_test, y_test = dataset.load_data(gestures=["all"])
     num_classes = np.unique(y_test).size
 
     # Reshapes

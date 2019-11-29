@@ -80,7 +80,7 @@ def load_data(imsize=28, gestures=['all']):
 
     _normalize(data_path, imsize)
 
-    x, y = _read_datadata_path, (gestures)
+    x, y = _read_data(data_path, gestures)
     x, y = shuffle(x, y, random_state=0)
 
     return _split_data(x, y)

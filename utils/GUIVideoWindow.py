@@ -1,12 +1,14 @@
 
 import time
-from multiprocessing import Process
+from threading import Thread
 
 import cv2
 
 import utils.image as imgutils
 
-def _display_func(name, size, show_fps, img_retrival_func):
+_stopped = False
+
+def _display_func(img_retrival_func, name, size, show_fps, flip, isRGB):
 
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
     if size is not None:
@@ -16,10 +18,15 @@ def _display_func(name, size, show_fps, img_retrival_func):
         t_start = time.time()
         frame_counter = 0
 
-    while True:
+    global _stopped
+    while not _stopped:
         frame = img_retrival_func()
+
         if frame is not None:
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            if isRGB:
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            if flip:
+                frame = cv2.flip(frame, 1)
 
             if show_fps:
                 frame_counter += 1
@@ -37,20 +44,32 @@ def _display_func(name, size, show_fps, img_retrival_func):
             cv2.imshow(name, frame)
             cv2.waitKey(1)
 
+    cv2.destroyWindow(name)
 
 class GUIVideoWindow(object):
     def __init__(self, name, img_retrival_func, size=None):
         super(GUIVideoWindow, self).__init__()
 
+
         self.name = name
         self.size = size
         self._img_retrival_func = img_retrival_func
+        global _stopped
+        _stopped = False
+        self._display_t = None
 
-    def start(self, show_fps=False):
-        self._display_p = Process(target=_display_func,
-                                  args=(self.name, self.size, show_fps, self._img_retrival_func))
-        self._display_p.start()
+    def start(self, show_fps=False, flip=False, isRGB=True):
+        if self._display_t is None:
+            global _stopped
+            _stopped = False
+            self._display_t = Thread(target=_display_func,
+                                     args=(self._img_retrival_func, self.name, self.size, show_fps, flip, isRGB))
+            self._display_t.start()
 
     def terminate(self):
-        self._display_p.terminate()
-        cv2.destroyWindow(self.name)
+        if self._display_t is not None:
+            global _stopped
+            _stopped = True
+            self._display_t = None
+
+

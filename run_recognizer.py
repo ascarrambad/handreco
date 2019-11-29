@@ -106,8 +106,8 @@ def main():
     listener.start()
 
     # Init speech recognizer
-    # speech_rec = SpeechRecognizer()
-    # speech_rec.start()
+    speech_rec = SpeechRecognizer()
+    speech_rec.start()
 
     # Init detection parameters
     cap_params = {}
@@ -117,7 +117,7 @@ def main():
     # Init Workers
     workers = WorkersManager(args.num_workers,
                              args.queue_size,
-                             True,
+                             speech_rec.enable_rec_v,
                              InferenceManager)
     workers.start(cap_params)
 
@@ -131,7 +131,6 @@ def main():
         main_window = GUIVideoWindow('Webcam feed', workers.output_q.get, size=(450,300))
         main_window.start(show_fps=show_fps)
         cropped_out_window = GUIVideoWindow('Hand frame', workers.cropped_output_q.get)
-        cropped_out_window.start()
 
     # Start main loop
     global _terminate_proc
@@ -141,14 +140,15 @@ def main():
         workers.input_q.put(frame)
 
         # Gesture recognition works only after magic word
-        if True:
+        if speech_rec.enable_rec_v.value:
+            cropped_out_window.start()
             try:
                 inferences = workers.inferences_q.get_nowait()
             except Exception as e:
                 inferences = None
                 pass
 
-            if (inferences is not None):
+            if inferences is not None:
                 # Display inferences
                 guiutils.draw_inferences(inferences)
 
@@ -160,15 +160,15 @@ def main():
                         action, payload = decision
                         services.call(action, 'window_left', payload)
 
+    if enable_gui:
+        main_window.terminate()
+        cropped_out_window.terminate()
+        cv2.destroyAllWindows()
+
     listener.stop()
-    workers.terminate()
-    # speech_rec.terminate()
     video_capture.stop()
-
-    main_window.terminate()
-    cropped_out_window.terminate()
-    cv2.destroyAllWindows()
-
+    workers.terminate()
+    speech_rec.terminate()
 
 if __name__ == '__main__':
     main()

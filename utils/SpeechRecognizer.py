@@ -5,11 +5,15 @@ from ctypes import c_char_p
 
 import speech_recognition as sr
 
+_stopped = False
+
 # Google Speech Recognition process
-def _speech_rec_func(enable_rec_v, recognized_speech_a, activation_tokens):
+def _speech_rec_func(recognized_speech_a, activation_tokens, enable_rec_v):
     magic_word_detected = False
     r = sr.Recognizer()
-    while True:
+
+    global _stopped
+    while not _stopped:
         # obtain audio from the microphone
         with sr.Microphone() as source:
             print("Say something!")
@@ -49,11 +53,23 @@ class SpeechRecognizer(object):
         # Init shared values
         self.enable_rec_v = Value('b', False)
         self.recognized_speech_a = Array(c_char_p, '')
+        self._speech_rec_p = None
+
+        global _stopped
+        _stopped = False
 
     def start(self):
-        self._speech_rec_p = Process(target=_speech_rec_func,
-                                     args=(self.enable_rec_v, self.recognized_speech_a, self._activation_tokens))
-        self._speech_rec_p.start()
+        if self._speech_rec_p is None:
+            global _stopped
+            _stopped = False
+            self._speech_rec_p = Process(target=_speech_rec_func,
+                                         args=(self.recognized_speech_a, self._activation_tokens, self.enable_rec_v))
+            self._speech_rec_p.start()
 
     def terminate(self):
-        self._speech_rec_p.terminate()
+        if self._speech_rec_p is not None:
+            global _stopped
+            _stopped = True
+            self._speech_rec_p.terminate()
+            self._speech_rec_p = None
+
